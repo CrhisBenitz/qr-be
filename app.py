@@ -4,21 +4,11 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-@app.route('/qr-be')
+@app.route('/qr')
 def generate_qr():
-    text = request.args.get('text')
-    color = request.args.get('color', 'black')
-    bg = request.args.get('bg', 'white')
-    size = int(request.args.get('size', 10))
+    text = request.args.get('text', 'https://example.com')  # default if empty
+    img = qrcode.make(text)
 
-    if not text:
-        return "Missing 'text' parameter", 400
-
-    qr = qrcode.QRCode(box_size=size, border=4)
-    qr.add_data(text)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color=color, back_color=bg)
     buf = BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
