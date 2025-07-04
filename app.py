@@ -4,7 +4,7 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-@app.route('/qr')
+@app.route('/qr-be')
 def generate_qr():
     text = request.args.get('text')
     color = request.args.get('color', 'black')
