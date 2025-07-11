@@ -34,10 +34,16 @@ def style_outer_eyes(img):
     draw.rectangle((60, img_size-90, 90, img_size-60), fill=0)
     return mask
 
+
+
 @app.route("/qr-be")
 def generate_qr():
     # Read parameters
     data = request.args.get("text")
+    color = request.args.get('color', 'black')
+    bg = request.args.get('bg', 'white')
+    size = int(request.args.get('size', 10))
+
     if not data:
         return "Missing 'text' parameter", 400
 
