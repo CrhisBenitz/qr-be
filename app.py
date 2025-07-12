@@ -46,15 +46,17 @@ def hex_to_rgb(hex_color):
 
 def rgb_to_rgb(rgb_color):
     rgb_color = urllib.parse.unquote(rgb_color)
-    rgb_color = rgb_color.lstrip('rgb(')
-    rgb_color = rgb_color.lstrip('rgb%28')
-    rgb_color = rgb_color.rstrip(')')
-    rgb_color = rgb_color.rstrip('%29')
-
 
     if "%" in rgb_color:
+        rgb_color = rgb_color.lstrip('rgb%28')
+        rgb_color = rgb_color.rstrip('%29')
+
         return tuple(int(c) for c in rgb_color.split("%2C"))
     else:
+
+        rgb_color = rgb_color.lstrip('rgb(')
+        rgb_color = rgb_color.rstrip(')')
+
         return tuple(int(c) for c in rgb_color.split(","))
 
 
@@ -64,7 +66,6 @@ def generate_qr():
     # Read parameters
     data = request.args.get("text")
 
-    app.logger.info(data)
 
     main_color = rgb_to_rgb(request.args.get('main-color', 'rgb(255,255,255)'))
     main_bg = rgb_to_rgb(request.args.get('main-bg', 'rgb(0,0,0)'))
@@ -79,6 +80,7 @@ def generate_qr():
     outereyes_drawer = request.args.get('outereyes-drawer', 'squares')
 
 
+    app.logger.info(main_bg)
 
 
     if not data:
@@ -102,7 +104,7 @@ def generate_qr():
     # Create outer eye layer
     qr_outer_eyes_img = qr.make_image(image_factory=StyledPilImage,
         eye_drawer=drawers[outereyes_drawer],
-        color_mask=SolidFillColorMask(front_color=outereyes_color)
+        color_mask=SolidFillColorMask(back_color=outereyes_bg,front_color=outereyes_color)
     )
 
     # Composite inner and outer eye layers
