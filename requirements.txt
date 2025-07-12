@@ -2,3 +2,4 @@ flask
 qrcode
 pillow==10.4.0
 gunicorn
+requests
