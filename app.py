@@ -48,11 +48,13 @@ def parse_color(value):
 
     value = urllib.parse.unquote_plus(value.strip())
 
+
     # Hex formats ----------------------------------------------------------------
     if value.startswith('#'):
-        if len(value) == 4:                       # #rgb  →  #rrggbb
-            value = '#' + ''.join(c*2 for c in value[1:])
-        return tuple(int(value[i:i+2], 16) for i in (1, 3, 5))
+        value = value.lstrip('#')
+        print(value)
+        print(tuple(int(value[i:i+2], 16) for i in (0, 2, 4)))
+        return tuple(int(value[i:i+2], 16) for i in (0, 2, 4))
 
     # rgb(r, g, b) ----------------------------------------------------------------
     m = re.match(r'rgb\(\s*(\d{1,3})\s*,'
@@ -67,58 +69,63 @@ def parse_color(value):
 
 @app.route("/qr-be")
 def generate_qr():
-    # Read parameters
-    data = request.args.get("text")
+
+    try:
+        # Read parameters
+        data = request.args.get("text")
 
 
-    main_color = parse_color(request.args.get('main-color', 'rgb(255,255,255)'))
-    main_bg = parse_color(request.args.get('main-bg', 'rgb(0,0,0)'))
-    main_drawer = request.args.get('main-drawer', 'squares')
+        main_color = parse_color(request.args.get('main-color', 'rgb(255,255,255)'))
+        main_bg = parse_color(request.args.get('main-bg', 'rgb(0,0,0)'))
+        main_drawer = request.args.get('main-drawer', 'squares')
 
-    innereyes_color = parse_color(request.args.get('innereyes-color', 'rgb(255,255,255)'))
-    innereyes_bg = parse_color(request.args.get('innereyes-bg', 'rgb(0,0,0)'))
-    innereyes_drawer = request.args.get('innereyes-drawer', 'squares')
+        innereyes_color = parse_color(request.args.get('innereyes-color', 'rgb(255,255,255)'))
+        innereyes_bg = parse_color(request.args.get('innereyes-bg', 'rgb(0,0,0)'))
+        innereyes_drawer = request.args.get('innereyes-drawer', 'squares')
 
-    outereyes_color = parse_color(request.args.get('outereyes-color', 'rgb(255,255,255)'))
-    outereyes_bg = parse_color(request.args.get('outereyes-bg', 'rgb(0,0,0)'))
-    outereyes_drawer = request.args.get('outereyes-drawer', 'squares')
-
-
-    app.logger.info(main_bg)
+        outereyes_color = parse_color(request.args.get('outereyes-color', 'rgb(255,255,255)'))
+        outereyes_bg = parse_color(request.args.get('outereyes-bg', 'rgb(0,0,0)'))
+        outereyes_drawer = request.args.get('outereyes-drawer', 'squares')
 
 
-    if not data:
-        return "Missing 'text' parameter", 400
+        app.logger.info(main_bg)
 
-    # Create base QR object
-    qr = qrcode.QRCode(version=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
-    qr.add_data(data)
 
-    # Create base image
-    qr_img = qr.make_image(image_factory=StyledPilImage, module_drawer=drawers[main_drawer],color_mask=SolidFillColorMask(front_color=main_color, back_color=main_bg))
+        if not data:
+            return "Missing 'text' parameter", 400
 
-    # Create inner eye layer
-    qr_inner_eyes_img = qr.make_image(image_factory=StyledPilImage,
-        eye_drawer=drawers[innereyes_drawer],
-        color_mask=SolidFillColorMask(
-            back_color=innereyes_bg,
-            front_color=innereyes_color)
-    )
+        # Create base QR object
+        qr = qrcode.QRCode(version=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
+        qr.add_data(data)
 
-    # Create outer eye layer
-    qr_outer_eyes_img = qr.make_image(image_factory=StyledPilImage,
-        eye_drawer=drawers[outereyes_drawer],
-        color_mask=SolidFillColorMask(back_color=outereyes_bg,front_color=outereyes_color)
-    )
+        # Create base image
+        qr_img = qr.make_image(image_factory=StyledPilImage, module_drawer=drawers[main_drawer],color_mask=SolidFillColorMask(front_color=main_color, back_color=main_bg))
 
-    # Composite inner and outer eye layers
-    inner_eye_mask = style_inner_eyes(qr_img)
-    outer_eye_mask = style_outer_eyes(qr_img)
-    intermediate_img = Image.composite(qr_inner_eyes_img, qr_img, inner_eye_mask)
-    final_image = Image.composite(qr_outer_eyes_img, intermediate_img, outer_eye_mask)
+        # Create inner eye layer
+        qr_inner_eyes_img = qr.make_image(image_factory=StyledPilImage,
+            eye_drawer=drawers[innereyes_drawer],
+            color_mask=SolidFillColorMask(
+                back_color=innereyes_bg,
+                front_color=innereyes_color)
+        )
 
-    # Return as PNG
-    buf = BytesIO()
-    final_image.save(buf, format="PNG")
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png')
+        # Create outer eye layer
+        qr_outer_eyes_img = qr.make_image(image_factory=StyledPilImage,
+            eye_drawer=drawers[outereyes_drawer],
+            color_mask=SolidFillColorMask(back_color=outereyes_bg,front_color=outereyes_color)
+        )
+
+        # Composite inner and outer eye layers
+        inner_eye_mask = style_inner_eyes(qr_img)
+        outer_eye_mask = style_outer_eyes(qr_img)
+        intermediate_img = Image.composite(qr_inner_eyes_img, qr_img, inner_eye_mask)
+        final_image = Image.composite(qr_outer_eyes_img, intermediate_img, outer_eye_mask)
+
+        # Return as PNG
+        buf = BytesIO()
+        final_image.save(buf, format="PNG")
+        buf.seek(0)
+        # return parse_color(request.args.get('main-color', 'rgb(255,255,255)'))
+        return send_file(buf, mimetype='image/png')
+    except:
+        return parse_color(request.args.get('main-color', 'rgb(255,255,255)'))
