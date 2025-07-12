@@ -7,6 +7,7 @@ from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import CircleModuleDrawer,GappedSquareModuleDrawer,HorizontalBarsDrawer,RoundedModuleDrawer,SquareModuleDrawer,VerticalBarsDrawer
 import urllib.parse
 from qrcode.image.styles.colormasks import SolidFillColorMask
+import re
 
 app = Flask(__name__)
 
