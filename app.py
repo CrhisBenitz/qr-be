@@ -11,6 +11,10 @@ import re
 
 app = Flask(__name__)
 
+# Compatibility for older Pillow versions
+if not hasattr(PIL.Image, 'Resampling'):
+    PIL.Image.Resampling = PIL.Image
+
 drawers = {
     "squares": SquareModuleDrawer(),
     "circles": RoundedModuleDrawer(),
