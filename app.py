@@ -7,7 +7,9 @@ from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import CircleModuleDrawer,GappedSquareModuleDrawer,HorizontalBarsDrawer,RoundedModuleDrawer,SquareModuleDrawer,VerticalBarsDrawer
 import urllib.parse
 from qrcode.image.styles.colormasks import SolidFillColorMask
+from  qrcode.image.styles.colormasks import ImageColorMask
 import re
+import requests
 
 app = Flask(__name__)
 
@@ -47,8 +49,8 @@ def style_outer_eyes(img):
 
 def parse_color(value):
     """Return (r, g, b) tuple from #rrggbb, #rgb, or rgb(r,g,b)."""
-    if not value:
-        return default
+    if not value or value=="None":
+        return None
 
     value = urllib.parse.unquote_plus(value.strip())
 
@@ -76,47 +78,91 @@ def generate_qr():
 
     # Read parameters
     data = request.args.get("text")
+    if not data:
+        return "Missing 'text' parameter", 400
 
 
     main_color = parse_color(request.args.get('main-color', 'rgb(255,255,255)'))
     main_bg = parse_color(request.args.get('main-bg', 'rgb(0,0,0)'))
     main_drawer = request.args.get('main-drawer', 'squares')
 
-    innereyes_color = parse_color(request.args.get('innereyes-color', 'rgb(255,255,255)'))
-    innereyes_bg = parse_color(request.args.get('innereyes-bg', 'rgb(0,0,0)'))
+    innereyes_color = parse_color(request.args.get('innereyes-color', 'None'))
+    innereyes_bg = parse_color(request.args.get('innereyes-bg', 'None'))
     innereyes_drawer = request.args.get('innereyes-drawer', 'squares')
 
-    outereyes_color = parse_color(request.args.get('outereyes-color', 'rgb(255,255,255)'))
-    outereyes_bg = parse_color(request.args.get('outereyes-bg', 'rgb(0,0,0)'))
+    outereyes_color = parse_color(request.args.get('outereyes-color', None))
+    outereyes_bg = parse_color(request.args.get('outereyes-bg', None))
     outereyes_drawer = request.args.get('outereyes-drawer', 'squares')
 
+    logo_url = request.args.get('logoURL',"")
+    image_url = request.args.get('imageURL',"")
 
-    app.logger.info(main_bg)
+    logo = mimage = None
 
+    if logo_url:
+        try:
+            logo_url = urllib.parse.unquote(logo_url)
+            logo_response = requests.get(logo_url, timeout=5)
+            logo_response.raise_for_status()
+            logo = Image.open(BytesIO(logo_response.content)).convert("RGBA")
+        except Exception as e:
+            return f"Failed to fetch image from URL: {str(e)}", 400
 
-    if not data:
-        return "Missing 'text' parameter", 400
+    if image_url:
+        try:
+            image_url = urllib.parse.unquote(image_url)
+            mimage_response = requests.get(image_url, timeout=5)
+            mimage_response.raise_for_status()
+            mimage = Image.open(BytesIO(mimage_response.content)).convert("RGBA")
+        except Exception as e:
+            return f"Failed to fetch image from URL: {str(e)}", 400
+
 
     # Create base QR object
-    qr = qrcode.QRCode(version=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
+    qr = qrcode.QRCode(version=6, error_correction=qrcode.constants.ERROR_CORRECT_H)
+    # qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_H)
     qr.add_data(data)
 
     # Create base image
-    qr_img = qr.make_image(image_factory=StyledPilImage, module_drawer=drawers[main_drawer],color_mask=SolidFillColorMask(front_color=main_color, back_color=main_bg))
+    main_mask = SolidFillColorMask(front_color=main_color, back_color=main_bg)
+
+    if mimage:
+        main_mask = ImageColorMask(color_mask_image=mimage,back_color=main_bg)
+
+    qr_img = qr.make_image(image_factory=StyledPilImage, module_drawer=drawers[main_drawer],color_mask=main_mask)
+    # qr_img = qr.make_image(fit=True, image_factory=StyledPilImage, module_drawer=drawers[main_drawer],color_mask=SolidFillColorMask(front_color=main_color, back_color=main_bg))
+
+    if logo:
+        # Resize logo
+        qr_width, qr_height = qr_img.size
+        logo_size = int(qr_width * 0.25)
+        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+
+        # Paste logo into the center of the QR
+        pos = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
+        qr_img.paste(logo, pos, mask=logo)
+
+    inner_eyes_mask = outer_eyes_mask = main_mask
+
+    if not innereyes_bg:
+        innereyes_bg = main_bg
+    if not outereyes_bg:
+        outereyes_bg =  main_bg
+
+    if innereyes_color and innereyes_bg:
+        inner_eyes_mask = SolidFillColorMask(back_color=innereyes_bg,front_color=innereyes_color)
+    if outereyes_color and outereyes_bg:
+        outer_eyes_mask = SolidFillColorMask(back_color=outereyes_bg,front_color=outereyes_color)
 
     # Create inner eye layer
     qr_inner_eyes_img = qr.make_image(image_factory=StyledPilImage,
         eye_drawer=drawers[innereyes_drawer],
-        color_mask=SolidFillColorMask(
-            back_color=innereyes_bg,
-            front_color=innereyes_color)
-    )
+        color_mask=inner_eyes_mask)
 
     # Create outer eye layer
     qr_outer_eyes_img = qr.make_image(image_factory=StyledPilImage,
         eye_drawer=drawers[outereyes_drawer],
-        color_mask=SolidFillColorMask(back_color=outereyes_bg,front_color=outereyes_color)
-    )
+        color_mask=outer_eyes_mask)
 
     # Composite inner and outer eye layers
     inner_eye_mask = style_inner_eyes(qr_img)
