@@ -3,3 +3,4 @@ qrcode
 pillow==10.4.0
 gunicorn
 requests
+flask_cors

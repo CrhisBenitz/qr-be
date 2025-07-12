@@ -10,8 +10,10 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from  qrcode.image.styles.colormasks import ImageColorMask
 import re
 import requests
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["https://crhisbenitz.github.io"])
 
 # Compatibility for older Pillow versions
 if not hasattr(PIL.Image, 'Resampling'):
