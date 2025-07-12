@@ -2,4 +2,3 @@ flask
 qrcode
 pillow
 gunicorn
-urllib
