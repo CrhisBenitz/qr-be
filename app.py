@@ -47,9 +47,15 @@ def hex_to_rgb(hex_color):
 def rgb_to_rgb(rgb_color):
     rgb_color = urllib.parse.unquote(rgb_color)
     rgb_color = rgb_color.lstrip('rgb(')
+    rgb_color = rgb_color.lstrip('rgb%28')
     rgb_color = rgb_color.rstrip(')')
+    rgb_color = rgb_color.rstrip('%29')
 
-    return tuple(int(c) for c in rgb_color.split(","))
+
+    if "%" in rgb_color:
+        return tuple(int(c) for c in rgb_color.split("%2C"))
+    else:
+        return tuple(int(c) for c in rgb_color.split(","))
 
 
 
