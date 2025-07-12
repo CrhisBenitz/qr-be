@@ -48,6 +48,7 @@ def rgb_to_rgb(rgb_color):
     rgb_color = urllib.parse.unquote(rgb_color)
     rgb_color = rgb_color.lstrip('rgb(')
     rgb_color = rgb_color.rstrip(')')
+
     return tuple(int(c) for c in rgb_color.split(","))
 
 
@@ -56,6 +57,8 @@ def rgb_to_rgb(rgb_color):
 def generate_qr():
     # Read parameters
     data = request.args.get("text")
+
+    app.logger.info(data)
 
     main_color = rgb_to_rgb(request.args.get('main-color', 'rgb(255,255,255)'))
     main_bg = rgb_to_rgb(request.args.get('main-bg', 'rgb(0,0,0)'))
@@ -69,7 +72,7 @@ def generate_qr():
     outereyes_bg = rgb_to_rgb(request.args.get('outereyes-bg', 'rgb(0,0,0)'))
     outereyes_drawer = request.args.get('outereyes-drawer', 'squares')
 
-    app.logger.info(main_bg)
+
 
 
     if not data:
