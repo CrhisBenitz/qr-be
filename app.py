@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 import qrcode
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import CircleModuleDrawer,GappedSquareModuleDrawer,HorizontalBarsDrawer,RoundedModuleDrawer,SquareModuleDrawer,VerticalBarsDrawer
-
+import urllib.parse
 from qrcode.image.styles.colormasks import SolidFillColorMask
 
 app = Flask(__name__)
@@ -45,6 +45,7 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 def rgb_to_rgb(rgb_color):
+    rgb_color = urllib.parse.unquote(rgb_color)
     rgb_color = rgb_color.lstrip('rgb(')
     rgb_color = rgb_color.rstrip(')')
     return tuple(int(c) for c in rgb_color.split(","))
